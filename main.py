@@ -1,23 +1,31 @@
 import os
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
 import google.generativeai as genai
 
 app = FastAPI()
 
-# دریافت کلید با هر دو نام ممکن
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_KEY")
 PROXY_TOKEN = os.environ.get("PROXY_TOKEN", "Amin 1392 1 14")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# تغییر مدل به نسخه بسیار پایدار و عمومی gemini-pro
-try:
-    model = genai.GenerativeModel('gemini-pro')
-except Exception as e:
-    print(f"Error initializing model: {e}")
+# مسیر جدید برای عیب‌یابی دقیق
+@app.get("/list-models")
+def list_models():
+    if not GEMINI_API_KEY:
+        raise HTTPException(status_code=500, detail="No API Key found")
+    try:
+        available_models = []
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                available_models.append(m.name)
+        return {"available_models": available_models}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
+# مسیر اصلی چت (ساده شده برای تست)
+from pydantic import BaseModel
 class ChatRequest(BaseModel):
     prompt: str
     user_name: str = "امین"
@@ -29,24 +37,16 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=401, detail="توکن نامعتبر است!")
     
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="API Key not found on server")
-        
+        raise HTTPException(status_code=500, detail="API Key missing")
+
     try:
-        # ساخت پرامپت به سبک جدید برای جلوگیری از خطای ساختاری
-        full_prompt = f"You are HeroPrime, a helpful AI assistant for {req.user_name}. User says: {req.prompt}"
-        
-        response = model.generate_content(full_prompt)
-        
-        # بررسی اینکه آیا پاسخ واقعاً متنی هست یا نه
-        if response and response.text:
-            return {"response": response.text}
-        else:
-            raise HTTPException(status_code=500, detail="Google returned an empty response.")
-            
+        # فعلاً از یک مدل بسیار پایه استفاده می‌کنیم
+        model = genai.GenerativeModel('gemini-pro') 
+        response = model.generate_content(req.prompt)
+        return {"response": response.text}
     except Exception as e:
-        # اینجا خیلی مهمه که دقیقاً بگیم ارور چیه
-        raise HTTPException(status_code=500, detail=f"Google API Error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat Error: {str(e)}")
 
 @app.get("/")
 def home():
-    return {"status": "HeroPrime Server is Running!", "status_code": 200}
+    return {"status": "HeroPrime Server is Running!"}

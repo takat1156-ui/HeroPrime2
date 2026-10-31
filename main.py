@@ -7,7 +7,7 @@ app = FastAPI(title="HeroPrime AI Server")
 
 # دریافت کلیدها از تنظیمات سرور رندر
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-PROXY_TOKEN = os.environ.get("PROXY_TOKEN", "amin1405")
+PROXY_TOKEN = os.environ.get("PROXY_TOKEN", "Amin 1392 1 14")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)

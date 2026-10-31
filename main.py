@@ -1,31 +1,21 @@
 import os
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import google.generativeai as genai
 
 app = FastAPI()
 
+# تنظیمات API
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") or os.environ.get("GEMINI_KEY")
 PROXY_TOKEN = os.environ.get("PROXY_TOKEN", "Amin 1392 1 14")
 
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# مسیر جدید برای عیب‌یابی دقیق
-@app.get("/list-models")
-def list_models():
-    if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="No API Key found")
-    try:
-        available_models = []
-        for m in genai.list_models():
-            if 'generateContent' in m.supported_generation_methods:
-                available_models.append(m.name)
-        return {"available_models": available_models}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+# انتخاب مدل از لیست دقیق تو (Gemini 3.5 Flash)
+# این مدل در لیست تو بود و بسیار قدرتمند است
+MODEL_NAME = 'gemini-3.5-flash'
 
-# مسیر اصلی چت (ساده شده برای تست)
-from pydantic import BaseModel
 class ChatRequest(BaseModel):
     prompt: str
     user_name: str = "امین"
@@ -40,13 +30,22 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=500, detail="API Key missing")
 
     try:
-        # فعلاً از یک مدل بسیار پایه استفاده می‌کنیم
-        model = genai.GenerativeModel('gemini-pro') 
-        response = model.generate_content(req.prompt)
-        return {"response": response.text}
+        # مقداردهی مدل با نام دقیق از لیست تو
+        model = genai.GenerativeModel(MODEL_NAME)
+        
+        full_prompt = f"You are HeroPrime, a highly intelligent AI assistant for {req.user_name}. User says: {req.prompt}"
+        
+        response = model.generate_content(full_prompt)
+        
+        if response and response.text:
+            return {"response": response.text}
+        else:
+            raise HTTPException(status_code=500, detail="Empty response from Google.")
+            
     except Exception as e:
+        # اگر باز هم ارور داد، متن دقیق رو برگردون
         raise HTTPException(status_code=500, detail=f"Chat Error: {str(e)}")
 
 @app.get("/")
 def home():
-    return {"status": "HeroPrime Server is Running!"}
+    return {"status": "HeroPrime Ultra-Advanced Server is Running!", "model_used": MODEL_NAME}

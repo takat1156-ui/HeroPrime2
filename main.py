@@ -11,8 +11,8 @@ PROXY_TOKEN = os.environ.get("PROXY_TOKEN", "Amin 1392 1 14")
 if GEMINI_API_KEY:
     genai.configure(api_key=GEMINI_API_KEY)
 
-# استفاده از مدل استانداردتر
-model = genai.GenerativeModel('gemini-1.5-pro')
+# اصلاح نام مدل به نسخه Flash که در دسترس‌تر و سازگارتر است
+model = genai.GenerativeModel('gemini-1.5-flash')
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -25,14 +25,13 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=401, detail="توکن نامعتبر است!")
     
     if not GEMINI_API_KEY:
-        raise HTTPException(status_code=500, detail="کلید جمینی روی سرور تنظیم نشده است (API Key is missing)!")
+        raise HTTPException(status_code=500, detail="کلید جمینی روی سرور تنظیم نشده است")
         
     try:
         full_prompt = f"تو هیروپرایم هستی، دستیار هوش مصنوعی {req.user_name}."
-        response = model.generate_content(req.prompt)
+        response = model.generate_content([full_prompt, req.prompt])
         return {"response": response.text}
     except Exception as e:
-        # برگرداندن متن دقیق ارور برای عیب‌یابی
         raise HTTPException(status_code=500, detail=f"Google API Error: {str(e)}")
 
 @app.get("/")
